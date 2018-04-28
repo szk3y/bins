@@ -1,10 +1,11 @@
-SRCS = main.c
+TARGETS = cat
 CC = gcc
-CFLAGS = -g -W -Wall -std=c11
+CFLAGS = -g -Wall -Wextra -std=gnu11
 
-# Instead of writing about complex dependencies, I always compile all source files.
-all: $(SRCS)
-	$(CC) $(CFLAGS) $(SRCS)
+all: $(TARGETS)
+
+cat: cat.c
+	$(CC) $(CFLAGS) -o $@ $<
 
 .PHONY: clean
 clean:
