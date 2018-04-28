@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -17,7 +16,7 @@ int main(int argc, char* argv[])
     }
   }
 
-  while(true) {
+  while(1) {
     ch = fgetc(fp);
     if(ch == EOF) {
       break;
