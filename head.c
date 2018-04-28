@@ -4,7 +4,12 @@
 
 #define DEFAULT_NLINE 10
 
-void do_head(FILE* fp, int nline)
+typedef enum {
+  SELECTOR_LINE,
+  SELECTOR_CHAR,
+} Selector;
+
+void do_line_head(FILE* fp, int nline)
 {
   int cnt = 0;
   char ch;
@@ -20,14 +25,46 @@ void do_head(FILE* fp, int nline)
   }
 }
 
+void do_char_head(FILE* fp, int nchar)
+{
+  char ch;
+  for(int i = 0; i < nchar; i++) {
+    ch = fgetc(fp);
+    if(ch == EOF) {
+      break;
+    }
+    putchar(ch);
+  }
+}
+
+void do_head(FILE* fp, int n, Selector selector)
+{
+  switch(selector) {
+    case SELECTOR_LINE:
+      do_line_head(fp, n);
+      break;
+    case SELECTOR_CHAR:
+      do_char_head(fp, n);
+      break;
+    default:
+      fprintf(stderr, "Unknown selector found: %c\n", selector);
+      exit(1);
+  }
+}
+
 int main(int argc, char** argv)
 {
   FILE* fp;
   int nline = DEFAULT_NLINE;
   int opt;
+  Selector selector = SELECTOR_LINE;
 
-  while((opt = getopt(argc, argv, "n:")) != -1) {
+  while((opt = getopt(argc, argv, "c:n:")) != -1) {
     switch(opt) {
+      case 'c':
+        nline = atoi(optarg);
+        selector = SELECTOR_CHAR;
+        break;
       case 'n':
         nline = atoi(optarg);
         break;
@@ -41,7 +78,7 @@ int main(int argc, char** argv)
   }
 
   if(argv[optind] == NULL) {
-    do_head(stdin, nline);
+    do_head(stdin, nline, selector);
     return 0;
   }
   for(int i = optind; i < argc; i++) {
@@ -50,7 +87,7 @@ int main(int argc, char** argv)
       perror("fopen");
       exit(1);
     }
-    do_head(fp, nline);
+    do_head(fp, nline, selector);
     fclose(fp);
   }
   return 0;
