@@ -10,3 +10,4 @@ cmd
 cat
 echo
 head
+sh
