@@ -1,4 +1,4 @@
-TARGETS = cat head echo
+TARGETS = cat head echo ls
 CC = gcc
 CFLAGS = -g -Wall -Wextra -std=gnu11
 
@@ -11,6 +11,9 @@ head: head.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 echo: echo.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+ls: ls.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 .PHONY: clean
