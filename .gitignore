@@ -9,5 +9,6 @@ cmd
 
 cat
 echo
+grep
 head
 ls
