@@ -9,5 +9,8 @@ cmd
 
 cat
 echo
+expr
+grep
 head
 sh
+ls
