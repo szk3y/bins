@@ -24,4 +24,4 @@ expr: expr.c
 
 .PHONY: clean
 clean:
-	$(RM) a.out
+	$(RM) $(TARGETS)
