@@ -12,5 +12,5 @@ echo
 expr
 grep
 head
-sh
 ls
+sh
