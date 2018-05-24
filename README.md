@@ -1,2 +1,2 @@
 # bins
-sh and its merry friends
+shell and commands
