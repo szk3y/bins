@@ -203,5 +203,6 @@ int main(int argc, char** argv)
   cmd = parse(fp);
   fclose(fp);
   print_command(cmd);
+  // TODO: free commands and tokens
   return 0;
 }
