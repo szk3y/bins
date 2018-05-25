@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #define PARSER_BUF_SIZE 0x100
 #define MAX_TOKEN_LEN 0x100
@@ -34,6 +37,7 @@ typedef struct token {
 typedef struct command {
   char* argv[MAX_ARGC];
   struct command* next;
+  pid_t pid;
 } Command;
 
 CharType ctype[256];
@@ -183,6 +187,80 @@ void init_ctype()
   //ctype[';'] = CT_SEMICOLON;
 }
 
+/*
+ *  When you give a shell program that looks like
+ *  proc1 | proc2 | proc3 ...
+ *  to this function, it will build a process chain like this:
+ *
+ *      fork()
+ *      /    \
+ *  child    parent
+ *    |        |
+ *  proc1    fork()
+ *           /    \
+ *      child     parent
+ *        |         |
+ *      proc2     fork()
+ *                /    \
+ *            child    parent
+ *              |        |
+ *            proc3      |
+ *                       |
+ *                     return
+ */
+void build_process_chain(Command* command)
+{
+  int fds[2] = { -1, -1};
+  int prev_fds[2];
+  pid_t pid;
+
+  for(Command* cmd = command; cmd != NULL; cmd = cmd->next) {
+    memcpy(prev_fds, fds, sizeof(prev_fds));
+    if(pipe(fds) < 0) {
+      perror("pipe");
+      exit(1);
+    }
+    pid = fork();
+    if(pid < 0) {
+      perror("fork");
+      exit(1);
+    }
+    if(pid == 0) { // pid
+      if(cmd != command) { // not first process
+        close(0);
+        dup2(prev_fds[0], 0);
+        close(prev_fds[0]);
+        close(prev_fds[1]);
+      }
+      if(cmd->next != NULL) { // not last process
+        close(1);
+        dup2(fds[1], 1);
+        close(fds[1]);
+        close(fds[0]);
+      }
+      execvp(cmd->argv[0], cmd->argv);
+      perror("execvp"); // execX only returns when it fails
+      exit(1);
+    } else { // parent
+      if(prev_fds[0] != -1) {
+        close(prev_fds[0]);
+      }
+      if(prev_fds[1] != -1) {
+        close(prev_fds[1]);
+      }
+      cmd->pid = pid;
+      continue;
+    }
+  }
+}
+
+void wait_children(const Command* command)
+{
+  for(const Command* cmd = command; cmd != NULL; cmd = cmd->next) {
+    waitpid(cmd->pid, NULL, 0);
+  }
+}
+
 int main(int argc, char** argv)
 {
   FILE* fp;
@@ -203,6 +281,10 @@ int main(int argc, char** argv)
   cmd = parse(fp);
   fclose(fp);
   print_command(cmd);
+  puts("executing...");
+  build_process_chain(cmd);
+  wait_children(cmd);
+  puts("Done!");
   // TODO: free commands and tokens
   return 0;
 }
