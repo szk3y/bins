@@ -46,7 +46,12 @@ void print_command(const Command* cmd)
 {
   while(cmd != NULL) {
     for(int i = 0; cmd->argv[i] != NULL; i++) {
-      puts(cmd->argv[i]);
+      fputs(cmd->argv[i], stdout);
+      if(cmd->argv[i+1] == NULL) {
+        putchar('\n');
+      } else {
+        putchar(' ');
+      }
     }
     cmd = cmd->next;
   }
