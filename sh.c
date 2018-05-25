@@ -19,13 +19,27 @@ typedef enum {
 } TokenType;
 
 typedef enum {
+  CT_OTHERS,
+  CT_LETTER,
+  CT_LF,
+  CT_PIPE,
+  CT_SHARP,
+  CT_DOLLAR,
+  CT_AND,
   CT_LPAREN,
   CT_RPAREN,
-  CT_LETTER,
-  CT_PIPE,
+  CT_ASTERISK,
+  CT_COMMA,
   CT_SEMICOLON,
-  CT_LF,
-  CT_OTHERS,
+  CT_REDIN,
+  CT_REDOUT,
+  CT_QUESTION,
+  CT_LBRACKET,
+  CT_BACKSLASH,
+  CT_RBRACKET,
+  CT_LBRACE,
+  CT_RBRACE,
+  CT_TILDE,
 } CharType;
 
 typedef struct token {
@@ -102,15 +116,13 @@ Token* next_token(FILE* fp)
       strcpy(token->str, "|");
       ch = next_ch(fp);
       break;
-    case CT_LPAREN:
-    case CT_RPAREN:
-    case CT_SEMICOLON:
     case CT_OTHERS:
       fprintf(stderr, "'%c' is not implemented.\n", ch);
       exit(1);
     default:
-      fputs("Unreachable code. Maybe, you forgot to call init_ctype()\n",
+      fputs("Unreachable code. Maybe, you forgot to call init_ctype(),\n",
           stderr);
+      fprintf(stderr, "or '%c' is not implemented.\n", ch);
       exit(1);
   }
   return token;
@@ -183,13 +195,38 @@ void init_ctype()
   for(int i = 'a'; i <= 'z'; i++) {
     ctype[i] = CT_LETTER;
   }
+  ctype['!'] = CT_LETTER;
+  ctype['%'] = CT_LETTER;
+  ctype['+'] = CT_LETTER;
+  ctype['-'] = CT_LETTER;
+  ctype['.'] = CT_LETTER;
+  ctype['/'] = CT_LETTER;
+  ctype[':'] = CT_LETTER;
+  ctype['='] = CT_LETTER;
+  ctype['@'] = CT_LETTER;
+  ctype['^'] = CT_LETTER;
   ctype['_'] = CT_LETTER;
   ctype['\n'] = CT_LF;
   ctype['|'] = CT_PIPE;
   // not implemented characters
+  //ctype['#'] = CT_SHARP;
+  //ctype['$'] = CT_DOLLAR;
+  //ctype['&'] = CT_AND;
   //ctype['('] = CT_LPAREN;
   //ctype[')'] = CT_RPAREN;
+  //ctype['*'] = CT_ASTERISK;
+  //ctype[','] = CT_COMMA;
   //ctype[';'] = CT_SEMICOLON;
+  //ctype['<'] = CT_REDIN;
+  //ctype['>'] = CT_REDOUT;
+  //ctype['?'] = CT_QUESTION;
+  //ctype['['] = CT_LBRACKET;
+  //ctype['\\'] = CT_BACKSLASH;
+  //ctype[']'] = CT_RBRACKET;
+  //ctype['`'] = CT_BACKTICK;
+  //ctype['{'] = CT_LBRACE;
+  //ctype['}'] = CT_RBRACE;
+  //ctype['~'] = CT_TILDE;
 }
 
 /*
@@ -230,14 +267,14 @@ void build_process_chain(Command* command)
       perror("fork");
       exit(1);
     }
-    if(pid == 0) { // pid
-      if(cmd != command) { // not first process
+    if(pid == 0) { // child
+      if(cmd != command) { // not the first process
         close(0);
         dup2(prev_fds[0], 0);
         close(prev_fds[0]);
         close(prev_fds[1]);
       }
-      if(cmd->next != NULL) { // not last process
+      if(cmd->next != NULL) { // not the last process
         close(1);
         dup2(fds[1], 1);
         close(fds[1]);
