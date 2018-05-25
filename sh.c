@@ -56,6 +56,31 @@ typedef struct command {
 
 CharType ctype[256];
 
+void del_token(Token* head)
+{
+  Token* token = head;
+  Token* prev;
+  while(token != NULL) {
+    prev = token;
+    token = token->next;
+    free(prev);
+  }
+}
+
+void del_command(Command* head)
+{
+  Command* cmd = head;
+  Command* prev;
+  while(cmd != NULL) {
+    for(int i = 0; cmd->argv[i] != NULL; i++) {
+      free(cmd->argv[i]);
+    }
+    prev = cmd;
+    cmd = cmd->next;
+    free(prev);
+  }
+}
+
 void print_command(const Command* cmd)
 {
   while(cmd != NULL) {
@@ -86,9 +111,9 @@ Token* next_token(FILE* fp)
   Token* token;
   static int ch = ' ';
 
-  token = malloc(sizeof(Token));
+  token = calloc(1, sizeof(Token));
   if(!token) {
-    perror("malloc");
+    perror("calloc");
     exit(1);
   }
   token->next = NULL;
@@ -145,18 +170,18 @@ Command* parse(FILE* fp)
   token->next = NULL;
 
   token = head;
-  cmd = malloc(sizeof(Command));
+  cmd = calloc(1, sizeof(Command));
   if(cmd == NULL) {
-    perror("malloc");
+    perror("calloc");
     exit(1);
   }
   cmd_begin = cmd;
   while(token->type != TT_END) {
     switch(token->type) {
       case TT_STRING:
-        cmd->argv[i] = malloc(sizeof(token->str));
+        cmd->argv[i] = calloc(1, sizeof(token->str));
         if(cmd->argv[i] == NULL) {
-          perror("malloc");
+          perror("calloc");
           exit(1);
         }
         strncpy(cmd->argv[i], token->str, sizeof(token->str));
@@ -165,9 +190,9 @@ Command* parse(FILE* fp)
       case TT_PIPE:
         cmd->argv[i] = NULL;
         i = 0;
-        cmd->next = malloc(sizeof(Command));
+        cmd->next = calloc(1, sizeof(Command));
         if(cmd->next == NULL) {
-          perror("malloc");
+          perror("calloc");
           exit(1);
         }
         cmd = cmd->next;
@@ -178,6 +203,7 @@ Command* parse(FILE* fp)
     token = token->next;
   }
   cmd->next = NULL;
+  del_token(head);
   return cmd_begin;
 }
 
@@ -328,5 +354,6 @@ int main(int argc, char** argv)
   wait_children(cmd);
   puts("Done!");
   // TODO: free commands and tokens
+  del_command(cmd);
   return 0;
 }
