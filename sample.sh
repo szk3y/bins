@@ -1,1 +1,1 @@
-./echo hello | ./cat
+./echo xargs.c | ./xargs ./cat

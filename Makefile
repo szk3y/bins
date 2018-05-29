@@ -1,4 +1,4 @@
-TARGETS = cat head echo sh ls grep expr
+TARGETS = cat head echo sh ls grep expr xargs
 CC = gcc
 CFLAGS = -g -Wall -Wextra -std=gnu11
 
@@ -23,6 +23,9 @@ grep: grep.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 expr: expr.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+xargs: xargs.c
 	$(CC) $(CFLAGS) -o $@ $<
 
 .PHONY: clean
