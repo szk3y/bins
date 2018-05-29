@@ -69,6 +69,8 @@ Arg* next_arg(FILE* fp)
   char ch;
   Arg* arg;
 
+  // FIXME: At first, skip delimiters
+
   for(size_t i = 0; i < sizeof(global_buf); i++) {
     ch = fgetc(fp);
     if(ch == EOF) {
