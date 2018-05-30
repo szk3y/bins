@@ -12,6 +12,7 @@ echo
 expr
 grep
 head
+less
 ls
 sh
 xargs
