@@ -7,6 +7,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "util.h"
+
 #define DEFAULT_NARGS 10000
 #define BUFSIZE 0x1000
 
@@ -20,11 +22,7 @@ typedef struct arg {
 
 Arg* new_arg()
 {
-  Arg* ptr = malloc(sizeof(Arg));
-  if(ptr == NULL) {
-    perror("malloc");
-    exit(1);
-  }
+  Arg* ptr = xmalloc(sizeof(Arg));
   ptr->str = NULL;
   ptr->next = NULL;
   return ptr;
@@ -93,11 +91,7 @@ Arg* next_arg(FILE* fp)
     return NULL;
   }
   arg = new_arg();
-  arg->str = malloc(strlen(global_buf));
-  if(arg->str == NULL) {
-    perror("malloc");
-    exit(1);
-  }
+  arg->str = xmalloc(strlen(global_buf));
   strcpy(arg->str, global_buf);
   return arg;
 }
@@ -132,11 +126,7 @@ void do_xargs(FILE* fp, int nargs, int argc, char** command_line_argv)
   int i = argc;
   Arg* head = parse_input(fp);
   // +1 for nullptr
-  char** argv = malloc(sizeof(char*) * (argc+nargs+1));
-  if(argv == NULL) {
-    perror("malloc");
-    exit(1);
-  }
+  char** argv = xmalloc(sizeof(char*) * (argc+nargs+1));
 
   for(int k = 0; k < argc; k++) { // set command line arguments
     argv[k] = command_line_argv[k];

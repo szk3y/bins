@@ -9,6 +9,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "util.h"
+
 #define PARSER_BUF_SIZE 0x100
 #define MAX_TOKEN_LEN 0x100
 #define MAX_ARGC 0x100
@@ -115,11 +117,7 @@ Token* next_token(FILE* fp)
   Token* token;
   static int ch = ' ';
 
-  token = calloc(1, sizeof(Token));
-  if(!token) {
-    perror("calloc");
-    exit(1);
-  }
+  token = xcalloc(sizeof(Token));
   token->next = NULL;
 
   while(isspace(ch)) {
@@ -182,31 +180,19 @@ Command* parse(FILE* fp)
   token->next = NULL;
 
   token = head;
-  cmd = calloc(1, sizeof(Command));
-  if(cmd == NULL) {
-    perror("calloc");
-    exit(1);
-  }
+  cmd = xcalloc(sizeof(Command));
   cmd_begin = cmd;
   while(token->type != TT_END) {
     switch(token->type) {
       case TT_STRING:
-        cmd->argv[i] = calloc(1, sizeof(token->str));
-        if(cmd->argv[i] == NULL) {
-          perror("calloc");
-          exit(1);
-        }
+        cmd->argv[i] = xcalloc(sizeof(token->str));
         strncpy(cmd->argv[i], token->str, sizeof(token->str));
         i++;
         break;
       case TT_PIPE:
         cmd->argv[i] = NULL;
         i = 0;
-        cmd->next = calloc(1, sizeof(Command));
-        if(cmd->next == NULL) {
-          perror("calloc");
-          exit(1);
-        }
+        cmd->next = xcalloc(sizeof(Command));
         cmd = cmd->next;
         break;
       case TT_REDOUT:
@@ -215,18 +201,10 @@ Command* parse(FILE* fp)
         i = 0;
 
         // create a new command for redirection
-        cmd->next = calloc(1, sizeof(Command));
-        if(cmd->next == NULL) {
-          perror("calloc");
-          exit(1);
-        }
+        cmd->next = xcalloc(sizeof(Command));
         cmd = cmd->next;
         // write redirection operator to argv[0]
-        cmd->argv[0] = calloc(1, sizeof(token->str));
-        if(cmd->argv[0] == NULL) {
-          perror("calloc");
-          exit(1);
-        }
+        cmd->argv[0] = xcalloc(sizeof(token->str));
         strncpy(cmd->argv[0], token->str, sizeof(token->str));
         // write redirection operand to argv[1]
         token = token->next;
@@ -235,11 +213,7 @@ Command* parse(FILE* fp)
           fputs("Parse Error: Redirection operand not found\n", stderr);
           exit(1);
         }
-        cmd->argv[1] = calloc(1, sizeof(token->str));
-        if(cmd->argv[1] == NULL) {
-          perror("calloc");
-          exit(1);
-        }
+        cmd->argv[1] = xcalloc(sizeof(token->str));
         strncpy(cmd->argv[1], token->str, sizeof(token->str));
         i = 2;
         break;
