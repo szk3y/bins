@@ -388,6 +388,9 @@ void build_process_chain(Command* head)
 void wait_children(const Command* command)
 {
   for(const Command* cmd = command; cmd != NULL; cmd = cmd->next) {
+    if(cmd->pid == 0) { // redirection command
+      continue;
+    }
     waitpid(cmd->pid, NULL, 0);
   }
 }
