@@ -14,5 +14,6 @@ grep
 head
 less
 ls
+nc
 sh
 xargs
