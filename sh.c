@@ -416,7 +416,7 @@ int main(int argc, char** argv)
   build_process_chain(cmd);
   wait_children(cmd);
   puts("Done!");
-  // TODO: free commands and tokens
+
   del_command(cmd);
   return 0;
 }
