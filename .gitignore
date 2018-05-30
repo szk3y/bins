@@ -15,5 +15,6 @@ head
 less
 ls
 nc
+seq
 sh
 xargs
