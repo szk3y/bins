@@ -1,4 +1,7 @@
+#include <assert.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +18,7 @@ typedef enum {
   TT_RPAREN,
   TT_STRING,
   TT_PIPE,
+  TT_REDOUT,
   TT_END,
 } TokenType;
 
@@ -134,11 +138,19 @@ Token* next_token(FILE* fp)
       }
       break;
     case CT_LF:
+      // TODO: multi-line script
       token->type = TT_END;
+      ch = next_ch(fp);
       break;
     case CT_PIPE:
       token->type = TT_PIPE;
       strcpy(token->str, "|");
+      ch = next_ch(fp);
+      break;
+    case CT_REDOUT:
+      // TODO: implement '>>', '>&'
+      token->type = TT_REDOUT;
+      strcpy(token->str, ">");
       ch = next_ch(fp);
       break;
     case CT_OTHERS:
@@ -197,6 +209,40 @@ Command* parse(FILE* fp)
         }
         cmd = cmd->next;
         break;
+      case TT_REDOUT:
+        // null terminate argument vector
+        cmd->argv[i] = NULL;
+        i = 0;
+
+        // create a new command for redirection
+        cmd->next = calloc(1, sizeof(Command));
+        if(cmd->next == NULL) {
+          perror("calloc");
+          exit(1);
+        }
+        cmd = cmd->next;
+        // write redirection operator to argv[0]
+        cmd->argv[0] = calloc(1, sizeof(token->str));
+        if(cmd->argv[0] == NULL) {
+          perror("calloc");
+          exit(1);
+        }
+        strncpy(cmd->argv[0], token->str, sizeof(token->str));
+        // write redirection operand to argv[1]
+        token = token->next;
+        assert(token != NULL);
+        if(token->type != TT_STRING) {
+          fputs("Parse Error: Redirection operand not found\n", stderr);
+          exit(1);
+        }
+        cmd->argv[1] = calloc(1, sizeof(token->str));
+        if(cmd->argv[1] == NULL) {
+          perror("calloc");
+          exit(1);
+        }
+        strncpy(cmd->argv[1], token->str, sizeof(token->str));
+        i = 2;
+        break;
       default:
         break;
     }
@@ -229,10 +275,11 @@ void init_ctype()
   ctype['/'] = CT_LETTER;
   ctype[':'] = CT_LETTER;
   ctype['='] = CT_LETTER;
+  ctype['>'] = CT_REDOUT;
   ctype['@'] = CT_LETTER;
+  ctype['\n'] = CT_LF;
   ctype['^'] = CT_LETTER;
   ctype['_'] = CT_LETTER;
-  ctype['\n'] = CT_LF;
   ctype['|'] = CT_PIPE;
   // not implemented characters
   //ctype['#'] = CT_SHARP;
@@ -244,7 +291,6 @@ void init_ctype()
   //ctype[','] = CT_COMMA;
   //ctype[';'] = CT_SEMICOLON;
   //ctype['<'] = CT_REDIN;
-  //ctype['>'] = CT_REDOUT;
   //ctype['?'] = CT_QUESTION;
   //ctype['['] = CT_LBRACKET;
   //ctype['\\'] = CT_BACKSLASH;
@@ -253,6 +299,41 @@ void init_ctype()
   //ctype['{'] = CT_LBRACE;
   //ctype['}'] = CT_RBRACE;
   //ctype['~'] = CT_TILDE;
+}
+
+void redirect_stdout(const char* path)
+{
+  int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+  if(fd < 0) {
+    perror("open");
+    exit(1);
+  }
+  close(1);
+  dup2(fd, 1);
+  close(fd);
+}
+
+bool is_redirection(const Command* cmd)
+{
+  if(cmd == NULL) {
+    return false;
+  }
+  return strcmp(cmd->argv[0], ">") == 0;
+}
+
+// Manipulate fd and return true when a given command is redirection.
+// When a given command is not redirection, it only returns false.
+bool do_redirection(const Command* cmd)
+{
+  if(cmd == NULL) {
+    return false;
+  }
+  if(strcmp(cmd->argv[0], ">") == 0) {
+    redirect_stdout(cmd->argv[1]);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 /*
@@ -276,13 +357,17 @@ void init_ctype()
  *                       |
  *                     return
  */
-void build_process_chain(Command* command)
+void build_process_chain(Command* head)
 {
-  int fds[2] = { -1, -1};
+  int fds[2] = { -1, -1 };
   int prev_fds[2];
   pid_t pid;
+  Command* redcmd;
 
-  for(Command* cmd = command; cmd != NULL; cmd = cmd->next) {
+  for(Command* cmd = head; cmd != NULL; cmd = cmd->next) {
+    if(is_redirection(cmd)) { // skip redirection command
+      continue;
+    }
     memcpy(prev_fds, fds, sizeof(prev_fds));
     if(pipe(fds) < 0) {
       perror("pipe");
@@ -294,7 +379,7 @@ void build_process_chain(Command* command)
       exit(1);
     }
     if(pid == 0) { // child
-      if(cmd != command) { // not the first process
+      if(cmd != head) { // not the first process
         close(0);
         dup2(prev_fds[0], 0);
         close(prev_fds[0]);
@@ -305,6 +390,10 @@ void build_process_chain(Command* command)
         dup2(fds[1], 1);
         close(fds[1]);
         close(fds[0]);
+      }
+      redcmd = cmd->next;
+      while(do_redirection(redcmd)) {
+        redcmd = redcmd->next;
       }
       execvp(cmd->argv[0], cmd->argv);
       perror("execvp"); // execX only returns when it fails
