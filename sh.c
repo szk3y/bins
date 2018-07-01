@@ -370,7 +370,7 @@ void build_process_chain(Command* head)
         redcmd = redcmd->next;
       }
       execvp(cmd->argv[0], cmd->argv);
-      perror("execvp"); // execX only returns when it fails
+      perror("execvp"); // execX returns only when it fails
       exit(1);
     } else { // parent
       if(prev_fds[0] != -1) {
