@@ -388,7 +388,7 @@ void build_process_chain(Command* head)
 void wait_children(const Command* command)
 {
   for(const Command* cmd = command; cmd != NULL; cmd = cmd->next) {
-    if(cmd->pid == 0) { // redirection command
+    if(cmd->pid == 0) { // skip redirection commands
       continue;
     }
     waitpid(cmd->pid, NULL, 0);
@@ -401,7 +401,7 @@ int main(int argc, char** argv)
   Command* cmd;
 
   if(argc <= 1) {
-    fputs("This function is not implemented.\n", stderr);
+    fputs("Interactive mode is not implemented.\n", stderr);
     fprintf(stderr, "Usage: %s <file>\n", argv[0]);
     exit(1);
   }
