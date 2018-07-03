@@ -1,1 +1,1 @@
-./cat xargs.c | ./grep main > out.txt
+./grep main > out.txt < xargs.c

@@ -21,6 +21,7 @@ typedef enum {
   TT_STRING,
   TT_PIPE,
   TT_REDOUT,
+  TT_REDIN,
   TT_END,
 } TokenType;
 
@@ -151,6 +152,11 @@ Token* next_token(FILE* fp)
       strcpy(token->str, ">");
       ch = next_ch(fp);
       break;
+    case CT_REDIN:
+      token->type = TT_REDIN;
+      strcpy(token->str, "<");
+      ch = next_ch(fp);
+      break;
     case CT_OTHERS:
       fprintf(stderr, "'%c' is not implemented.\n", ch);
       exit(1);
@@ -196,6 +202,7 @@ Command* parse(FILE* fp)
         cmd = cmd->next;
         break;
       case TT_REDOUT:
+      case TT_REDIN:
         // null terminate argument vector
         cmd->argv[i] = NULL;
         i = 0;
@@ -248,6 +255,7 @@ void init_ctype()
   ctype['.'] = CT_LETTER;
   ctype['/'] = CT_LETTER;
   ctype[':'] = CT_LETTER;
+  ctype['<'] = CT_REDIN;
   ctype['='] = CT_LETTER;
   ctype['>'] = CT_REDOUT;
   ctype['@'] = CT_LETTER;
@@ -264,7 +272,6 @@ void init_ctype()
   //ctype['*'] = CT_ASTERISK;
   //ctype[','] = CT_COMMA;
   //ctype[';'] = CT_SEMICOLON;
-  //ctype['<'] = CT_REDIN;
   //ctype['?'] = CT_QUESTION;
   //ctype['['] = CT_LBRACKET;
   //ctype['\\'] = CT_BACKSLASH;
@@ -287,12 +294,24 @@ void redirect_stdout(const char* path)
   close(fd);
 }
 
+void redirect_stdin(const char* path)
+{
+  int fd = open(path, O_RDONLY);
+  if(fd < 0) {
+    perror("open");
+    exit(1);
+  }
+  close(0);
+  dup2(fd, 0);
+  close(fd);
+}
+
 bool is_redirection(const Command* cmd)
 {
   if(cmd == NULL) {
     return false;
   }
-  return strcmp(cmd->argv[0], ">") == 0;
+  return strcmp(cmd->argv[0], ">") == 0 || strcmp(cmd->argv[0], "<") == 0;
 }
 
 // Manipulate fd and return true when a given command is redirection.
@@ -304,6 +323,9 @@ bool do_redirection(const Command* cmd)
   }
   if(strcmp(cmd->argv[0], ">") == 0) {
     redirect_stdout(cmd->argv[1]);
+    return true;
+  } else if(strcmp(cmd->argv[0], "<") == 0) {
+    redirect_stdin(cmd->argv[1]);
     return true;
   } else {
     return false;
