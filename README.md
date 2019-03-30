@@ -1,2 +1,2 @@
-# bins
+# shell
 shell and commands
